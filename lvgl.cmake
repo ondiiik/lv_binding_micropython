@@ -1,31 +1,49 @@
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/lvgl)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/lodepng)
 
-message(STATUS "[LVGL] Preprocessing ...")
+message(STATUS "[LVGL] Preprocessing lvgl module ...")
 execute_process(COMMAND xtensa-esp32-elf-gcc -E -I../../lib/lv_bindings/pycparser/utils/fake_libc_include -I../../lib/lv_bindings -I../../lib/lv_bindings/driver/png/lodepng -I../../lib/berkeley-db-1.xx/PORT/include -I. -I../.. -I${CMAKE_BINARY_DIR} ../../lib/lv_bindings/lvgl/lvgl.h
                 OUTPUT_FILE       ${CMAKE_BINARY_DIR}/lvgl/lvgl.pp.c
                 WORKING_DIRECTORY ${PROJECT_DIR})
 
-message(STATUS "[LVGL] Building module ...")
+message(STATUS "[LVGL] Building lvgl module ...")
 execute_process(COMMAND python3 ../../lib/lv_bindings/gen/gen_mpy.py -M lvgl -MP lv -MD ${CMAKE_BINARY_DIR}/lvgl/lv_mpy.json -E ${CMAKE_BINARY_DIR}/lvgl/lvgl.pp.c ../../lib/lv_bindings/lvgl/lvgl.h
                 OUTPUT_FILE       ${CMAKE_BINARY_DIR}/lvgl/lv_mpy.c
                 WORKING_DIRECTORY ${PROJECT_DIR})
 
+message(STATUS "[LVGL] Preprocessing lodepng module ...")
+execute_process(COMMAND xtensa-esp32-elf-gcc -E -DLODEPNG_NO_COMPILE_ENCODER -DLODEPNG_NO_COMPILE_DISK -DLODEPNG_NO_COMPILE_ALLOCATORS -I../../lib/lv_bindings -I../../lib/lv_bindings/driver/png/lodepng -I../../lib/berkeley-db-1.xx/PORT/include -I. -I../.. -I${CMAKE_BINARY_DIR} -I../../lib/lv_bindings/pycparser/utils/fake_libc_include ../../lib/lv_bindings/driver/png/lodepng/lodepng.h
+                OUTPUT_FILE       ${CMAKE_BINARY_DIR}/lodepng/lodepng.pp.c
+                WORKING_DIRECTORY ${PROJECT_DIR})
+
+message(STATUS "[LVGL] Building lodepng module ...")
+execute_process(COMMAND python3 ../../lib/lv_bindings/gen/gen_mpy.py -M lodepng -E ${CMAKE_BINARY_DIR}/lodepng/lodepng.pp.c ../../lib/lv_bindings/driver/png/lodepng/lodepng.h
+                OUTPUT_FILE       ${CMAKE_BINARY_DIR}/lodepng/mp_lodepng.c
+                WORKING_DIRECTORY ${PROJECT_DIR})
+file(CREATE_LINK ${MICROPY_LVGL_DIR}/driver/png/lodepng/lodepng.cpp ${CMAKE_BINARY_DIR}/lodepng/lodepng.c)
+
 
 set(MICROPY_DEFINES_LVGL  MICROPY_PY_LVGL=1
                           MICROPY_PY_ESPIDF=0
-                          MICROPY_PY_LODEPNG=0
+                          MICROPY_PY_LODEPNG=1
                           MICROPY_PY_RTCH=0
+                          LODEPNG_NO_COMPILE_ENCODER
+                          LODEPNG_NO_COMPILE_DISK
+                          LODEPNG_NO_COMPILE_ALLOCATORS
 #                          LV_COLOR_DEPTH=16
 #                          LV_COLOR_16_SWAP=1
                           )
 
 set(MICROPY_SOURCE_LVGL   ${CMAKE_BINARY_DIR}/lvgl/lv_mpy.c
+                          ${CMAKE_BINARY_DIR}/lodepng/mp_lodepng.c
+                          ${CMAKE_BINARY_DIR}/lodepng/lodepng.c
 #                          ${MICROPY_LVGL_DIR}/driver/esp32/espidf.c
                           ${MICROPY_LVGL_DIR}/driver/esp32/modlvesp32.c
 #                          ${MICROPY_LVGL_DIR}/driver/esp32/modrtch.c
                           ${MICROPY_LVGL_DIR}/driver/esp32/sh2lib.c
                           ${MICROPY_LVGL_DIR}/driver/generic/modlvindev.c
-#                          ${MICROPY_LVGL_DIR}/driver/png/mp_lodepng.c
+                          ${MICROPY_LVGL_DIR}/driver/png/mp_lodepng.c
+#                          ${MICROPY_LVGL_DIR}/driver/png/lodepng/lodepng.cpp
                           ${MICROPY_LVGL_DIR}/lvgl/src/lv_core/lv_disp.c
                           ${MICROPY_LVGL_DIR}/lvgl/src/lv_core/lv_group.c
                           ${MICROPY_LVGL_DIR}/lvgl/src/lv_core/lv_indev.c
@@ -144,6 +162,7 @@ set(MICROPY_INCLUDES_LVGL ${MICROPY_DIR}
                           ${MICROPY_LVGL_DIR}/driver/esp32
                           ${MICROPY_LVGL_DIR}/driver/generic
                           ${MICROPY_LVGL_DIR}/driver/png
+                          ${MICROPY_LVGL_DIR}/driver/png/lodepng
                           ${MICROPY_LVGL_DIR}/lvgl/src/lv_core
                           ${MICROPY_LVGL_DIR}/lvgl/src/lv_draw
                           ${MICROPY_LVGL_DIR}/lvgl/src/lv_font
