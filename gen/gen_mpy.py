@@ -11,6 +11,7 @@
 from __future__ import print_function
 import collections
 import sys
+import re
 import struct
 import copy
 from itertools import chain
@@ -46,6 +47,7 @@ from pycparser import c_parser, c_ast, c_generator
 argParser = ArgumentParser()
 argParser.add_argument('-I', '--include', dest='include', help='Preprocesor include path', metavar='<Include Path>', action='append')
 argParser.add_argument('-D', '--define', dest='define', help='Define preprocessor macro', metavar='<Macro Name>', action='append')
+argParser.add_argument('-R', '--replace_inlines', dest='replace', help='Replace inlined function declarations by simple declarations', metavar='<Replaced Inlines file>', action='store')
 argParser.add_argument('-E', '--external-preprocessing', dest='ep', help='Prevent preprocessing. Assume input file is already preprocessed', metavar='<Preprocessed File>', action='store')
 argParser.add_argument('-M', '--module_name', dest='module_name', help='Module name', metavar='<Module name string>', action='store')
 argParser.add_argument('-MP', '--module_prefix', dest='module_prefix', help='Module prefix that starts every function name', metavar='<Prefix string>', action='store')
@@ -73,6 +75,65 @@ else:
     s = ''
     with open(args.ep, 'r') as f:
         s += f.read()
+
+
+if args.replace:
+    # Just stupid simple implementation but to parse
+    # esp-idf it should be enough
+    p_func = re.compile(r'static\s+inline\s+\w+\s+\w+\s*\([^\)]*\)\{?\n')
+    p_pref = re.compile(r'static\s+inline\s+')
+    input  = s.replace('__extension__', '')
+    
+    with open(args.replace, 'w') as outfile:
+        while True:
+            exp = p_func.search(input)
+            
+            if exp is None:
+                outfile.write(p_pref.sub('extern ', input))
+                break
+            
+            b, e = exp.span()
+            
+            outfile.write(p_pref.sub('extern ', input[:b]))
+            
+            if '{' == input[e - 2]:
+                e -= 2
+            
+            f    = input[b:e].rstrip()
+            b, b = p_pref.search(f).span()
+            f    = f[b:]
+            
+            outfile.write('extern ' + f + ';\n')
+            
+            idx = e
+            nl  = 1
+            
+            while not input[idx] == '{':
+                idx += 1
+                
+            idx += 1
+            
+            while not nl == 0:
+                c = input[idx]
+                
+                if   c == '{':
+                    nl += 1
+                elif c == '}':
+                    nl -= 1
+                elif c == '\n' or c == '\r':
+                    outfile.write(c)
+                
+                idx += 1
+            
+            
+            input = input[idx:]
+    
+    
+    s = ''
+    with open(args.replace, 'r') as f:
+        s += f.read()
+
+
 # 
 # AST parsing helper functions
 #

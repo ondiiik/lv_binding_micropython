@@ -47,11 +47,11 @@ function(lvgl_build_sources)
     
     message(STATUS "[LVGL] Preprocessing espidf module ...")
     execute_process(COMMAND xtensa-esp32-elf-gcc -E  -DPYCPARSER -I../../lib/lv_bindings/pycparser/utils/fake_libc_include -I../../lib/lv_bindings -I../../lib/lv_bindings/driver/png/lodepng -I../../lib/berkeley-db-1.xx/PORT/include -I. -I../.. -I${CMAKE_BINARY_DIR} ${ESPIDF_INCLUDES} ${ESPIDF_DEFINES} ../../lib/lv_bindings/driver/esp32/espidf.h
-                    OUTPUT_FILE       ${CMAKE_BINARY_DIR}/espidfmod/mp_espidf.pp.c
+                    OUTPUT_FILE       ${CMAKE_BINARY_DIR}/espidfmod/mp_espidf.ppi.c
                     WORKING_DIRECTORY ${PROJECT_DIR})
     
     message(STATUS "[LVGL] Building espidf module ...")
-    execute_process(COMMAND python3 ../../lib/lv_bindings/gen/gen_mpy.py -M espidf -E ${CMAKE_BINARY_DIR}/espidfmod/mp_espidf.pp.c ../../lib/lv_bindings/driver/esp32/espidf.h
+    execute_process(COMMAND python3 ../../lib/lv_bindings/gen/gen_mpy.py -M espidf -R ${CMAKE_BINARY_DIR}/espidfmod/mp_espidf.pp.c -E ${CMAKE_BINARY_DIR}/espidfmod/mp_espidf.ppi.c ../../lib/lv_bindings/driver/esp32/espidf.h
                     OUTPUT_FILE       ${CMAKE_BINARY_DIR}/espidfmod/mp_espidf.c
                     WORKING_DIRECTORY ${PROJECT_DIR})
 endfunction()
@@ -60,7 +60,7 @@ endfunction()
 
 function(lvgl_add_sources)
     set(MICROPY_DEFINES_LVGL  MICROPY_PY_LVGL=1
-                              MICROPY_PY_ESPIDF=0
+                              MICROPY_PY_ESPIDF=1
                               MICROPY_PY_LODEPNG=1
                               MICROPY_PY_RTCH=0
                               LODEPNG_NO_COMPILE_ENCODER
@@ -74,13 +74,12 @@ function(lvgl_add_sources)
                               ${CMAKE_BINARY_DIR}/lodepng/mp_lodepng.c
                               ${CMAKE_BINARY_DIR}/lodepng/lodepng.c
                               ${CMAKE_BINARY_DIR}/espidfmod/mp_espidf.c
-    #                          ${MICROPY_LVGL_DIR}/driver/esp32/espidf.c
+                              ${MICROPY_LVGL_DIR}/driver/esp32/espidf.c
                               ${MICROPY_LVGL_DIR}/driver/esp32/modlvesp32.c
     #                          ${MICROPY_LVGL_DIR}/driver/esp32/modrtch.c
                               ${MICROPY_LVGL_DIR}/driver/esp32/sh2lib.c
                               ${MICROPY_LVGL_DIR}/driver/generic/modlvindev.c
                               ${MICROPY_LVGL_DIR}/driver/png/mp_lodepng.c
-    #                          ${MICROPY_LVGL_DIR}/driver/png/lodepng/lodepng.cpp
                               ${MICROPY_LVGL_DIR}/lvgl/src/lv_core/lv_disp.c
                               ${MICROPY_LVGL_DIR}/lvgl/src/lv_core/lv_group.c
                               ${MICROPY_LVGL_DIR}/lvgl/src/lv_core/lv_indev.c

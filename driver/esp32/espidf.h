@@ -40,11 +40,14 @@ typedef void* system_event_t;
 
 // Exclude SOC just because it contains large structs that don't interest the user
 #define _SOC_SPI_PERIPH_H_
-typedef void *spi_dev_t;
+typedef void* spi_dev_t;
+
+#define _SOC_I2S_STRUCT_H_
+typedef void* i2s_dev_t;
 
 // TODO: Check why lldesc_t causes inifinite recursion on gen_mpy.py 
 #define _ROM_LLDESC_H_
-typedef void *lldesc_t; 
+typedef void* lldesc_t;
 
 // FreeRTOS definitions we want available on Micropython
 #include <stdint.h>
@@ -216,5 +219,3 @@ enum {
 void ili9xxx_post_cb_isr(spi_transaction_t *trans);
 
 void ili9xxx_flush(void *disp_drv, const void *area, void *color_p);
-
-
